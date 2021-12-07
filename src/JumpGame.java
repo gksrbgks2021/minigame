@@ -47,12 +47,11 @@ public class JumpGame extends JPanel implements Runnable, KeyListener { // 표적 
 		isrun = true;
 		isThread1 = true;
 		isdown = false;
-		Main.addKeyBinding(this, KeyEvent.VK_ESCAPE, "END_GAME", (evt) -> {
-			System.exit(0);// 종료된다.
-		});
 		isremoveAll = false;
 		addKeyListener(this);
 		requestFocus();
+		//더 나은 렌더링 퍼포먼스
+		this.setDoubleBuffered(true);
 	}
 
 	@Override
@@ -78,18 +77,7 @@ public class JumpGame extends JPanel implements Runnable, KeyListener { // 표적 
 	}
 
 	public void startT() {
-		new Thread(() -> { // 스레드 한 개
-			while (isrun) {
-				try {
-					if (!isrun)
-						break;
-					repaint();
-					Thread.sleep(30);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		}).start();
+	
 		new Thread(() -> {
 			while (isrun) {
 				try {
@@ -194,11 +182,6 @@ public class JumpGame extends JPanel implements Runnable, KeyListener { // 표적 
 			isremoveAll = true;
 	}
 
-	// 더블 버퍼링.
-	public void doublebuffer(Graphics g) {
-
-	}
-
 	// 그림그리기
 	public void paintComponent(Graphics g) {
 		super.paintComponent(g);
@@ -265,7 +248,7 @@ class ObstacleF extends JLabel implements Runnable {
 	Timer t1;
 	Timer t2;
 
-	ObstacleF(JumpGame jump) {
+	public ObstacleF(JumpGame jump) {
 		this.jump = jump;
 		init();
 		x = 1210;
@@ -311,7 +294,7 @@ class ObstacleF extends JLabel implements Runnable {
 		t1.start();
 		t2.start();
 		try {
-			Thread.sleep(7000);// 5초뒤에 종료 요청.
+			Thread.sleep(7000);// 7초뒤에 종료 요청.
 			finish();
 		} catch (Exception e) {
 			e.printStackTrace();

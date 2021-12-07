@@ -50,6 +50,7 @@ public class MainP extends JPanel implements Runnable{
 
 			}
 		});
+		
 		startbtn.setBounds(40, 200, 400, 100);
 		startbtn.setBorderPainted(false);
 		startbtn.setContentAreaFilled(false);
@@ -113,10 +114,11 @@ public class MainP extends JPanel implements Runnable{
 	
 	}
 	@Override
-	public void paintComponent(Graphics g) {
+	protected void paintComponent(Graphics g) {
 		//paint the BGI and scale it to fill the entire space
 		super.paintComponent(g);
 		g.drawImage(backgroundImage, 0, 0,null);
+		
 	}
 	@Override
 	public void run() {

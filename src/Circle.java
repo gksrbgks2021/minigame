@@ -1,63 +1,80 @@
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
+import java.awt.Graphics;
+import java.util.List;
 import java.util.Random;
 
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 
-class Circle extends JLabel implements Runnable{
+class Circle extends JLabel implements Runnable {
 	private int radius;
 	private int circleX;// xÁÂÇ¥ y ÁÂÇ¥
 	private int circleY;
-	private Circle circle ;
+	private int countClick;
+	private int type;
+	private Circle circle;
 	private boolean isrun = true;
 	int CN; // circleNumber.
 	private ShootingGame shoot;
-	ImageIcon img1 ; //»¡°£ ¿ø
-	ImageIcon img2; //°ËÁ¤ ¿ø
+	private java.util.Timer booking;
+	ImageIcon img1; // »¡°£ ¿ø
+	ImageIcon img2; // °ËÁ¤ ¿ø
 	Random rand = new Random();
-	
-	Circle(ShootingGame shootinggame, int num){
+
+	Circle(ShootingGame shootinggame, int Onum,int r) {
 		this.shoot = shootinggame;
-		this.CN = num;
+		this.CN = Onum;
 		this.radius = 70;
+		type = r;
 		initCircle();
 	}
-	
+
 	public void initCircle() {
 		img1 = new ImageIcon(Main.class.getResource("images/redcircle.png"));
-		img2 = new ImageIcon(Main.class.getResource("images/ruby.png"));
-		setIcon(img1);
-		setSize(radius,radius);
-		this.circleX =	rand.nextInt(851) + 150; //[ 150 .. 1000 ] ·£´ý ÁÂÇ¥
-		this.circleY =  rand.nextInt(421) + 150; //[ 150 .. 570 ]  ·£´ý ÁÂÇ¥
-		setLocation(circleX,circleY);
+		img2 = new ImageIcon(Main.class.getResource("images/Circle2.png"));
+		if (type == 0) {
+			setIcon(img1);
+			countClick =1 ;
+		}
+		if (type == 1) {
+			setIcon(img2);
+			countClick =2 ;
+		}
+		setSize(radius, radius);
+		
+		this.circleX = rand.nextInt(851) + 150; // [ 150 .. 1000 ] ·£´ý ÁÂÇ¥
+		this.circleY = rand.nextInt(421) + 150; // [ 150 .. 570 ] ·£´ý ÁÂÇ¥
+		setVisible(true);
+		setLocation(circleX, circleY);
+		
 		circle = this;
+		countClick = type+1;
+		booking = new java.util.Timer(false);
 	}
-	
+
+	// Circle ±×¸³´Ï´Ù~
+//	public void paintCircle(Graphics g, List<Circle> c) {
+//		c.forEach(a -> {
+//			g.drawImage(img1.getImage(), a.getcircleX(), a.getcircleY(), null);
+//		});
+//	}
+
 	@Override
 	public void run() {
-		try {
-			if(!isrun)
-			{
-				Thread.currentThread().interrupt();
-			}
-			shoot.addcircle(circle);
-			Thread.sleep(1500);
-			shoot.removecircle(getcircleN());//1ÃÊµÚ »èÁ¦ ¿äÃ»ÇÔ.
-			shoot= null;
-			Thread.currentThread().interrupt();
-		}
-		catch(Exception e) {
-			e.printStackTrace();
-		}
+		 setTimer(()->{
+			 if(isrun) //»èÁ¦°¡ ¾È‰ç´Ù¸é ~ 
+					shoot.Requestremovecircle(CN,true);// 1ÃÊµÚ »èÁ¦ ¿äÃ»ÇÔ.
+					shoot = null;
+		 },1000);
 	}
+
 	public double getdistance(int mX, int mY, int cX, int cY) {
 		return Math.sqrt((mX - cX) * (mX - cX) + (mY - cY) * (mY - cY));
 	}
+
 	public int getradius() {
 		return radius;
 	}
+
 	public int getcircleX() {
 		return circleX;
 	}
@@ -69,5 +86,21 @@ class Circle extends JLabel implements Runnable{
 	public int getcircleN() {
 		return CN;
 	}
-
+	
+	public void Clicked() {
+		countClick--;
+		if(countClick <=0) {
+			isrun = false;
+			System.out.println(CN+"¹øÈ£ Á¦°Å¿äÃ»");
+			shoot.Requestremovecircle(CN,false);
+		}
+	}
+	public void setTimer(Runnable runnable, long delay) {
+		booking.schedule(new java.util.TimerTask() {
+			@Override
+			public void run() {
+				runnable.run();
+			}
+		}, delay);
+	}
 }

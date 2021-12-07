@@ -16,7 +16,7 @@ public class GameOver extends JPanel {
 	private int point;
 	InputMap im;
 	ActionMap ap;
-	
+
 	GameOver(MyFrame myframe, int point) {
 		mf = myframe;
 		this.point = point;
@@ -32,6 +32,11 @@ public class GameOver extends JPanel {
 		ap.put("restart", new AbstractAction() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
+				try {
+					Thread.sleep(10);
+				} catch (Exception a) {
+					a.printStackTrace();
+				}
 				mf.restart();
 			}
 		});

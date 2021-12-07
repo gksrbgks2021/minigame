@@ -14,11 +14,12 @@ public class MyFrame extends JFrame  implements MouseListener{
 	private JumpGame jump;
 	private GameOver over;
 	private RhythmGame rh;
+	private Avoid avoid; 
 	
 	public boolean isrun; // 게임실행
 	private int CurPoint = 0;
 	private int CurLife = 5;
-	private int GameIndex ;
+	private int GameIndex;
 	private int once1=0;
 	private int once2=0;
 	private Random rd;
@@ -38,6 +39,7 @@ public class MyFrame extends JFrame  implements MouseListener{
 		CurPoint = 0;
 		CurLife = 1;
 		isrun = false;
+		GameIndex = -1;
 		addMouseListener(this);
 	}
 	// set Frame
@@ -90,7 +92,7 @@ public class MyFrame extends JFrame  implements MouseListener{
 			new Thread(jump).start();
 			//thread2.start();
 		}
-		else if (PN.equals("Music")) { // 2 번 쨰 패 널
+		else if (PN.equals("Music")) { // 3 번 쨰 패 널
 			// show (부모 컨테이너 , 카드 패의 id)
 			GameIndex = 1;
 			StopThread();
@@ -100,9 +102,24 @@ public class MyFrame extends JFrame  implements MouseListener{
 			revalidate();
 			repaint(); 
 			//cardLayout.show(getContentPane(), "1");
-			requestFocus();
+			//requestFocus();
 			// 스레드 동작 기능
 			new Thread(rh).start();
+			//thread2.start();
+		}
+		else if (PN.equals("Avoid")) { // 4 번 쨰 패 널
+			// show (부모 컨테이너 , 카드 패의 id)
+			GameIndex = 1;
+			StopThread();
+			avoid = new Avoid(gameFrame);
+			getContentPane().removeAll();
+			getContentPane().add(avoid); 
+			revalidate();
+			repaint(); 
+			//cardLayout.show(getContentPane(), "1");
+			requestFocus();
+			// 스레드 동작 기능
+			new Thread(avoid).start();
 			//thread2.start();
 		}
 		else if (PN.equals("GameOver")) { // 게 임 오 버
@@ -114,6 +131,8 @@ public class MyFrame extends JFrame  implements MouseListener{
 			getContentPane().removeAll();
 			getContentPane().add(over); 
 			revalidate();
+			// is just sum of both. It marks the container as invalid and performs layout of the container.
+			// call invalidate() and validate()
 			repaint(); 
 		}
 		/*
@@ -139,16 +158,24 @@ public class MyFrame extends JFrame  implements MouseListener{
 	public void nextgame() { // 다음 게임 실행.
 		System.out.println("메인 라이프 : " + CurLife + "다음게임~");
 		rd = new Random();
-		int a = rd.nextInt(2);
+		int a = rd.nextInt(3);
 		if(GameIndex == 0 ) {
 			removeMouseListener(shoot);
 		}
+		//똥피하기만 돌리기~
+	a=3;
 		switch(a) {
 		case 0:
 			changepanel("Shoot", CurLife);
 			break;
 		case 1:
 			changepanel("Jump",CurLife);
+			break;
+		case 2:
+			changepanel("Avoid", CurLife);
+			break;
+		case 3:
+			changepanel("Music",CurLife);
 			break;
 		}
 	}

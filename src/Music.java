@@ -25,7 +25,7 @@ private Player player;
 			public int getTime() {
 				if(player == null) return 0; //0.001초 단위까지 알려줌
 				return player.getPosition();//음악을 맞출때 이걸 이용해서 분석함.
-			}
+			} 
 			//음악이 언제 실행되든 화면전환이나 프로그램 종료하면음악을 종료한다. 
 			public void close() {
 				Continue=false;
@@ -41,7 +41,7 @@ private Player player;
 						bis = new BufferedInputStream(fis);
 						player = new Player(bis);
 						player.play(); //곡을 실행시켜요.
-					}while(Continue); //루프면 무한반복~
+					}while(Continue);
 				}catch(Exception e) {
 					System.out.println(e.getMessage());
 			}

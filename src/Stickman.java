@@ -15,7 +15,8 @@ class Stickman extends JLabel {
 	private boolean Left;
 	private boolean goDown;
 	private int stickanime;
-	private int jumpSpeed;
+	private int Speed;
+	private int sumSpeed;
 	private int jumpstart;
 	private int status; // 현재 상태. 1이면 기본., . 2면 움크리기. 3이면 오른쪽 진행, 4면 왼쪽.
 //속도 상태 
@@ -38,11 +39,12 @@ class Stickman extends JLabel {
 		Up = false;
 		Down = false;
 		goDown = false;
-		jumpSpeed = 1;
+		Speed = 3;
 		jumpstart = -30;
 		status = 1;
-		t = new Timer[4];
+		t = new Timer[5];
 		stickanime = 0;
+		sumSpeed = 0;
 	}
 
 	public void setlabel() {
@@ -62,31 +64,55 @@ class Stickman extends JLabel {
 		setLocation(x, y);
 
 		t[0] = new Timer(30, e -> { // t1은 오른쪽으로 이동하는거다.
-			if (getX() >= 1210)
-				t[0].stop();
-			x += 5;
-			setLocation(x, y);
+			
+			sumSpeed += Speed;
 		});
 
 		t[1] = new Timer(30, e -> { // t1은 왼쪽으로 이동하는거다.
-			if (getX() <= 0)
-				t[1].stop();
-			x -= 5;
-			setLocation(x, y);
+			
+			sumSpeed -= Speed;
 		});
 
 		t[2] = new Timer(50, e -> {
 			y += jumpstart;
-			jumpstart += jumpSpeed;
+			jumpstart += Speed;
 			checkfloor();
 			setLocation(x, y);
 		});
+
 		t[3] = new Timer(50, e -> {
 			if (status == 1 && !Up)// 일어나있는 상태이면
 				setIcon(manUp[(stickanime++) % 5]);
 			if (stickanime == Integer.MAX_VALUE)// 충돌방지.
 				stickanime = 0;
 		});
+
+		t[4] = new Timer(30, e -> {
+			if (getX() >= 1208) {
+				t[0].stop();
+				t[4].stop();
+				sumSpeed = 0;
+				x = 1207;
+			}
+			if (getX() <= 0) {
+				t[1].stop();
+				t[4].stop();
+				sumSpeed = 0;
+				x =1 ;
+			}
+			sumSpeed += (0 - ZeroExceptionSpeed(sumSpeed));
+			x += sumSpeed;
+			setLocation(x, y);
+		});
+	}
+
+	public int ZeroExceptionSpeed(int s) {
+		if (s == 0)
+			return 0;
+		else if (s > 0)
+			return s / s;
+		else
+			return s / s * (-1);
 	}
 
 	public void runStickman() { // 움직임 구현.
@@ -95,6 +121,12 @@ class Stickman extends JLabel {
 
 	public void stopStickman() { // 움직임 구현.
 		t[3].stop();
+	}
+
+	public void stopAll() {
+		for (int i = 0; i < t.length; i++) {
+			t[i].stop();
+		}
 	}
 
 	public void checkfloor() {// 바닥인지아닌지.
@@ -108,7 +140,7 @@ class Stickman extends JLabel {
 
 	public void Up() {
 		if (!Up) {
-			jumpSpeed = 10;
+			Speed = 10;
 			jumpstart = -50;
 			Up = true;
 			if (!Down)
@@ -144,8 +176,8 @@ class Stickman extends JLabel {
 		goDown = true;
 		new Thread(() -> {
 			try {
-				for (int i = 0; i < 180 / jumpSpeed; i++) {
-					y = y + jumpSpeed;
+				for (int i = 0; i < 180 / Speed; i++) {
+					y = y + Speed;
 					setLocation(x, y);
 					Thread.sleep(60);
 					// 점프하는데 걸리는 시간 4800 / jumpspeed.
@@ -178,10 +210,13 @@ class Stickman extends JLabel {
 //			Right = true;
 //		}
 		if (!Right) {
+			setIcon(manUp[0]);
 			Right = true;
 			if (getX() <= 1210) {
 				t[0].start();
+				t[4].start();
 			}
+
 		}
 	}
 
@@ -192,9 +227,11 @@ class Stickman extends JLabel {
 //			Right = true;
 //		}
 		if (!Left) {
+			setIcon(manleft1);
 			Left = true;
 			if (getX() >= 0) {
 				t[1].start();
+				t[4].start();
 			}
 		}
 	}

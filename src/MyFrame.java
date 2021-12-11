@@ -88,9 +88,7 @@ public class MyFrame extends JFrame  implements MouseListener{
 			revalidate();
 			repaint(); 
 			addKeyListener(jump);
-			// 스레드 동작 기능
 			new Thread(jump).start();
-			//thread2.start();
 		}
 		else if (PN.equals("Music")) { // 3 번 쨰 패 널
 			// show (부모 컨테이너 , 카드 패의 id)
@@ -103,9 +101,7 @@ public class MyFrame extends JFrame  implements MouseListener{
 			repaint(); 
 			//cardLayout.show(getContentPane(), "1");
 			//requestFocus();
-			// 스레드 동작 기능
 			new Thread(rh).start();
-			//thread2.start();
 		}
 		else if (PN.equals("Avoid")) { // 4 번 쨰 패 널
 			// show (부모 컨테이너 , 카드 패의 id)
@@ -118,9 +114,7 @@ public class MyFrame extends JFrame  implements MouseListener{
 			repaint(); 
 			//cardLayout.show(getContentPane(), "1");
 			requestFocus();
-			// 스레드 동작 기능
 			new Thread(avoid).start();
-			//thread2.start();
 		}
 		else if (PN.equals("GameOver")) { // 게 임 오 버
 			// show (부모 컨테이너 , 카드 패의 id)
@@ -155,7 +149,7 @@ public class MyFrame extends JFrame  implements MouseListener{
 	 * gamelist.get(1); // 우선 게임 1만 무한반복합니다. }
 	 */
 	
-	public void nextgame() { // 다음 게임 실행.
+	public void nextgame() {
 		System.out.println("메인 라이프 : " + CurLife + "다음게임~");
 		rd = new Random();
 		int a = rd.nextInt(3);
@@ -163,7 +157,7 @@ public class MyFrame extends JFrame  implements MouseListener{
 			removeMouseListener(shoot);
 		}
 		//똥피하기만 돌리기~
-	a=3;
+	a=2;
 		switch(a) {
 		case 0:
 			changepanel("Shoot", CurLife);
@@ -180,7 +174,7 @@ public class MyFrame extends JFrame  implements MouseListener{
 		}
 	}
 
-	public void gamepassed() {// 점수추가.
+	public void gamepassed() {
 		this.CurPoint += 1;
 		nextgame();
 	}
@@ -229,6 +223,8 @@ public class MyFrame extends JFrame  implements MouseListener{
 	public void mousePressed(MouseEvent e) {
 		if(GameIndex ==0 )
 			shoot.mousePressed(e);
+		//avoid.mousepress(e);
+		//System.out.println(","+e.getX()+","+e.getY());
 	}
 
 	@Override

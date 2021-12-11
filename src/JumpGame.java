@@ -1,10 +1,13 @@
 import java.awt.Graphics;
 import java.awt.Image;
+import java.awt.Polygon;
+import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.Hashtable;
+import java.util.Queue;
+import java.util.Random;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
@@ -15,128 +18,128 @@ public class JumpGame extends JPanel implements Runnable, KeyListener { // 표적 
 	int gamelife;
 	private MyFrame myframe;
 	private JumpGame jump;
+	private Stickman stickman;
+
 	private Image backgroundImage;
+	private Image Lpass;
+	private Image Lfail;
+	private Image letter;
+	private JLabel[] life;
 	private volatile boolean isrun;
 	private boolean isdown;
-	private boolean isThread1;
-	private Stickman stickman;
+	private boolean lock; // 제거 메소드 락 .
+	private boolean yap;
+	private boolean finish;
+	private Random r;
 	private int time = 0;
 	private int Limtime = 20; // 시간 제한 20초.
 	private int x;
 	private int y;
+	private int ON;
+	private long startime = 0;
+	private Timer t[];
+	private java.util.Timer booking;
 	// volatile 키워드를 선언함으로서 쓰기 읽기 작업은 메인 메모리에서 이뤄짐.
 	private volatile boolean isremoveAll;
 	ObstacleF obf;
-	List<ObstacleF> oblist;
-	private Image dbImage;
-	private Graphics dbg;
+	Queue<Integer> removelist;
+	Hashtable<Integer, ObstacleF> oblist;
 
 	JumpGame(MyFrame myFrame) {
 		setLayout(null);
-		oblist = Collections.synchronizedList(new ArrayList<>());
+		gamelife = 3;
 		this.myframe = myFrame;
-		jump = this;
-		backgroundImage = new ImageIcon(Main.class.getResource("images/Jumpbackground.png")).getImage();
 		this.stickman = new Stickman();
+		lock = false;
+		jump = this;
+		r = new Random();
+		backgroundImage = new ImageIcon(Main.class.getResource("images/Jumpbackground.png")).getImage();
+		letter = new RemoveBackground("Letter/jump.png").getImage();
+		Lpass = new RemoveBackground("Letter/passed.png").getImage();
+		Lfail = new RemoveBackground("Letter/failed.png").getImage();
+
+		oblist = new Hashtable<>();
+		removelist = new LinkedBlockingQueue<>(10);
+		booking = new java.util.Timer(false);
+
 		add(stickman);
+		addlife();
 		repaint();
 	}
 
 	public void init() {
-		gamelife = 3;
-		isrun = true;
-		isThread1 = true;
+		ON = 0;
 		isdown = false;
 		isremoveAll = false;
 		addKeyListener(this);
 		requestFocus();
-		//더 나은 렌더링 퍼포먼스
-		this.setDoubleBuffered(true);
+		setT();
+		finish = false;
+	}
+
+	public void setT() {
+		t = new Timer[2];
+		t[0] = new Timer(30, (e) -> {
+			istimeout();
+			removeobject();
+			checklife();// 라이프 검사.
+			repaint();
+		});
+
+		t[1] = new Timer(2000, (e) -> {
+			makeobject();
+		});
+
 	}
 
 	@Override
 	public void run() {
-		init();
-		try {
-			Thread.sleep(1000);
+		sleep(60);
+
+		repaint();
+		setTimer(() -> {
+			init();// 초기화하고
+		}, (long) 1000);
+
+		setTimer(() -> {
 			startT();// 스레드 동작.
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		}, (long) 1500);
+
 	}
 
 	public void stopT() {
 		isrun = false;
+		for (int i = 0; i < 2; i++) {
+			t[i].stop();
+		}
 	}
 
 	public void close() {
 		// 스레드 종료
+		finish = true;
+		repaint();
+		sleep(400); // 스레드 슬립
+		stickman.stopStickman();
+		oblist.clear();
 		stopT();
-		while (!isremoveAll)
-			; // 다 종료할떄까지 busy waiting
+		removelist.clear();
 	}
 
 	public void startT() {
-	
-		new Thread(() -> {
-			while (isrun) {
-				try {
-					if (!isrun)
-						break;
-					istimeout();
-					time++;
-					Thread.sleep(1000);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		}).start();
-		new Thread(() -> {
-			while (isrun) {
-				try {
-					if (!isrun)
-						break;
-					checklife();// 라이프 검사.
-					Thread.sleep(500);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		}).start();
-		// 원 생성
+		isrun = true;
+		repaint();
+		startime = System.currentTimeMillis();
+		for (int i = 0; i < 2; i++) {
+			t[i].start();
+		}
+		stickman.runStickman();
 
-		new Thread(() -> {
-			while (isrun) {
-				try {
-					if (!isrun)
-						break;
-					initobject();
-					Thread.sleep(3000);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		}).start();
-
-		new Thread(() -> {
-			while (isrun) {
-				try {
-					if (!isrun)
-						break;
-					repaint();
-					Thread.sleep(30);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		}).start();
 	}
 
 	public void istimeout() {
-		if (time >= Limtime) {
-			stopAll();
+		if ((System.currentTimeMillis() - startime) / 1000 >= Limtime) {
+			isrun = false;
 			checklife();
-			close();
 		}
 	}
 
@@ -145,56 +148,72 @@ public class JumpGame extends JPanel implements Runnable, KeyListener { // 표적 
 		isrun = false;
 	}
 
-	public void crash() {// 충돌했으면?
+	public void crash(int num) {// 충돌했으면?
+		if (!isrun)
+			return;// 게임끝났으면 블락.
 		this.gamelife -= 1;
+		minuslifeImage();
 		System.out.println("충돌함 라이프 : " + gamelife);
 		checklife();
+
+		removelist.add(num);
 	}
 
 	public void checklife() {
-		if (gamelife <= 0) // 게임종료시
+		if (gamelife <= 0 && !finish) // 게임종료시
 		{
-			close();
-			myframe.gamefailed(); // 실패
-		} else if (isrun == false && gamelife > 0) {// 게임 통과시.
-			close();
-			myframe.gamepassed();
+			yap = true;
+			Lpass = null;
+			finish = true; // 락을한다. 중복호출 방지.
+			repaint();
+			setTimer(() -> {
+				close();
+				myframe.gamefailed(); // 실패
+			}, (long) 2000);
+		} else if (isrun == false && gamelife > 0 && !finish) {// 게임 통과시.
+			yap = true;
+			Lfail = null;
+			finish = true;
+			repaint();
+			setTimer(() -> {
+				close();
+				myframe.gamepassed();
+			}, (long) 2000);
 		}
 	}
 
-	public void initobject() {
+	public void makeobject() { // 오브젝트 생성.
+
 		isremoveAll = false;
-		System.out.println("jump 클래스에서 장애물 생성");
-		obf = new ObstacleF(jump);
-		obf.setOb_run(true);
-		new Thread(obf).start();
+		obf = new ObstacleF(jump, ON, r.nextInt(2));
+		oblist.put(ON++, obf);
+		add(obf);
+		obf.run();
+
 	}
 
-	public void addobject(ObstacleF f) {
-		add(f);
-		oblist.add(f);
-	}
-
-	public void removeobject(ObstacleF f) {
-		remove(f);
-		oblist.remove(f);
-		if (oblist.size() == 0)// 마지막일떄
-			isremoveAll = true;
+	public void removeobject(int num) {
+		removelist.add(num);
 	}
 
 	// 그림그리기
 	public void paintComponent(Graphics g) {
 		super.paintComponent(g);
 		g.drawImage(backgroundImage, 0, 0, null);
+
+		if (!isrun && !finish) {
+			g.drawImage(letter, 535, 210, null);
+		}
+		// 끝났으면 글자 띄우기
+		if (yap) {
+			if (Lpass != null)
+				g.drawImage(Lpass, 535, 210, null);
+			if (Lfail != null)
+				g.drawImage(Lfail, 535, 210, null);
+		}
+
 	}
 
-	/*public void paint(Graphics g) {
-		dbImage = createImage(Main.SCREEN_WIDTH, Main.SCREEN_HEIGHT);
-		dbg = dbImage.getGraphics();
-		paintComponent(dbg);
-		g.drawImage(dbImage, 0, 0, this);
-	}
-*/
 	@Override
 	public void keyTyped(KeyEvent e) {
 	}
@@ -206,11 +225,13 @@ public class JumpGame extends JPanel implements Runnable, KeyListener { // 표적 
 	@Override
 	public void keyPressed(KeyEvent e) {
 		if (e.getKeyCode() == KeyEvent.VK_SPACE || e.getKeyCode() == KeyEvent.VK_UP) {
-			if (!stickman.isUp() && !stickman.isgoDown())// 이미 점프하고있으면 호출 x
-				stickman.Up();
+			stickman.Up();
 		}
 		if (e.getKeyCode() == KeyEvent.VK_DOWN) {
 			stickman.Down();
+		}
+		if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+			System.exit(1);
 		}
 	}
 
@@ -228,6 +249,61 @@ public class JumpGame extends JPanel implements Runnable, KeyListener { // 표적 
 	public int getmanY() {
 		return stickman.getY();
 	}
+
+	public int getheight() { // 1이면 기본, 2면 엎드린거.
+		return stickman.height();
+	}
+
+	public void removeobject() {
+		try {
+			lock = true;
+			int temp;
+			while (!removelist.isEmpty()) {
+				temp = removelist.poll();
+				remove(oblist.get(temp));
+				repaint();
+			}
+			lock = false;
+			isremoveAll = true;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void setTimer(Runnable runnable, long delay) {
+		booking.schedule(new java.util.TimerTask() {
+			@Override
+			public void run() {
+				runnable.run();
+			}
+		}, delay);
+	}
+
+	public void addlife() {
+		life = new JLabel[this.gamelife];
+		for (int i = 0; i < this.gamelife; i++) {
+			life[i] = new JL_Life();
+			life[i].setLocation(100 + i * 80, 600);
+			add(life[i]);
+		}
+	}
+
+	public void minuslifeImage() {
+		if (gamelife > 0) {
+			remove(life[gamelife]);
+		}
+		if (gamelife <= 0) {
+			remove(life[0]);
+		}
+	}
+
+	public void sleep(long mili) {
+		try {
+			Thread.sleep(mili);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 }
 
 //===================================================================================================================
@@ -237,36 +313,78 @@ public class JumpGame extends JPanel implements Runnable, KeyListener { // 표적 
 class ObstacleF extends JLabel implements Runnable {
 	private JumpGame jump;
 	private ObstacleF obstaclef;
-
+	int ON;
 	int x;
 	int y;
-	private int hitbox_X;
-	private int hitbox_Y;
-	ImageIcon imageF;
+	int count;
+	int polx[] = { 1244, 1210, 1245, 1250, 1250 };
+	int poly[] = { 453, 469, 481, 477, 458 };
+	private int mSpeed;
+	ImageIcon imageF[];
+	private boolean lock;
 	private boolean Ob_isrun;
 	private boolean iscrash;// 충돌 체크 여부
+	private int type;
+	Rectangle r[];
+	Polygon p;
 	Timer t1;
 	Timer t2;
+	java.util.Timer booking;
 
-	public ObstacleF(JumpGame jump) {
+	public ObstacleF(JumpGame jump, int num, int type) {
+		count = 0 ;
 		this.jump = jump;
-		init();
 		x = 1210;
-		y = 523;
+		y = 553;
+		mSpeed = Main.GAME_SPEED + 7;
+		init();
+		ON = num;
+		this.type = type;
+		r = new Rectangle[2];
+		if (type == 0)
+			type1();
+		if (type == 1)
+			type2();
+		r[1] = new Rectangle(jump.getmanX(), jump.getmanY(), 70, jump.getheight());
 	}
 
 	public void init() {
-		imageF = new ImageIcon(Main.class.getResource("images/obstacleF.png"));
-		setSize(53, 70);
-		setLocation(x, y);
-		setIcon(imageF);
+		imageF = new ImageIcon[2];
+		imageF[0] = new ImageIcon(Main.class.getResource("images/obstacleF.png"));
+		imageF[1] = new ImageIcon(Main.class.getResource("images/drill.png"));
+
 		Ob_isrun = false;
 		obstaclef = this;
 		iscrash = false;
+		lock = false;
+
+		booking = new java.util.Timer(false);
+
+		t1 = new Timer(50, e -> {
+			CheckCrash();
+		});
+		t1.setInitialDelay(500); // 0.5초 뒤에 타이머를 시작합니다.
+		t2 = new Timer(30, e -> { // move.
+			x -= (mSpeed);
+			setLocation(x, y);
+			count ++;
+		});
 	}
 
-	public void addObstacle() {
-		jump.addobject(obstaclef); // 장애물을 생성합니다~.
+	public void type1() {
+		r[0] = new Rectangle(x, y, 30, 40);
+		setSize(30, 40);
+		setLocation(x, y);
+		setIcon(imageF[0]);
+		setVisible(true);
+	}
+
+	public void type2() {
+		setSize(40, 30);
+		y -= 100;
+		setLocation(x, y);
+		setIcon(imageF[1]);
+		setVisible(true);
 	}
 
 	@Override
@@ -276,74 +394,58 @@ class ObstacleF extends JLabel implements Runnable {
 	}
 
 	public void startThread() {// 1
-		addObstacle();
-		moveOB();
+		t1.start();
+		t2.start();
+		setTimer(() -> {
+			if (!iscrash)// 충돌안했으면
+				finish();
+		}, 10000); // 10초뒤에 종료 요청
 		// 충돌 체크
 		// 람다식은 메소드를 객체로 취급하는 기능이다.
 		// 람다식을 사용해 무명 클래스를 간결하게 표현했다.
 		// timer 클래스는 actionPerformed() 메소드를 호출한다. ACtionListener 인터페이스를 구현한다.
-		t1 = new Timer(50, e -> {
-			CheckCrash();
-		});
-		t1.setInitialDelay(1000); // 1초 뒤에 타이머를 시작합니다.
-		t2 = new Timer(50, e -> {
-			if (!jump.isrun()) {
-				finish();
-			}
-		});
-		t1.start();
-		t2.start();
-		try {
-			Thread.sleep(7000);// 7초뒤에 종료 요청.
-			finish();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-
-	public void setOb_run(boolean isrun) { // main에서 조정하는거.
-		this.Ob_isrun = isrun;
 	}
 
 	public boolean Ob_isrun() {
 		return Ob_isrun;
 	}
 
-	public void moveOB() { // 왼쪽으로 이동합니다.
-
-		new Thread(() -> {
-			for (int i = 0; i < 400; i++) {
-				if (!Ob_isrun())// 실행종료했으면
-					break;
-				x -= Main.GAME_SPEED;
-				setLocation(x, y);
-				try {
-					Thread.sleep(30);
-				} catch (Exception e) {
-					e.printStackTrace();
+	public void CheckCrash() {// 충돌을 체크합니다.
+		if (!lock) {
+			lock = true;
+			if (iscrash)// 충돌했으면 아무것도 안함.
+			{
+				t1.stop();
+				return;
+			}
+			if (type == 0) {
+				r[0].setLocation(x, y);
+				r[1].setBounds(jump.getmanX(), jump.getmanY(), 70, jump.getheight());
+				if (r[0].intersects(r[1])) // 충돌했으면
+				{
+					crash();
 				}
 			}
-		}).start();
 
+			if (type == 1) {
+				r[1].setBounds(jump.getmanX(), jump.getmanY(), 70, jump.getheight());
+				for (int i = 0; i < 5; i++) {//드릴 꼭짓점.
+					if (r[1].contains(polx[i] - (count*mSpeed), poly[i])) {
+						crash();
+						break;
+					}
+				}
+			}
+			lock = false;
+		}
 	}
 
-	public void CheckCrash() {// 충돌을 체크합니다.
-		// 장애물의 4 꼭짓점을 조사합니다.
-		int x1 = jump.getmanX();
-		int x2 = this.x;
-		int y1 = jump.getmanY();
-		int y2 = this.y;
-		if (iscrash)// 충돌했으면 아무것도 안함.
-			return;
-
-		if ((x2 >= x1 && x2 <= x1 + 70) && (y2 >= y1 && y2 <= y1 + 140)// 왼쪽위 꼭짓점.
-				|| (x2 + 53 >= x1 && x2 + 53 <= x1 + 70) && (y2 >= y1 && y2 <= y1 + 140)// 오른쪽위꼭짓점.
-				|| (x2 >= x1 && x2 <= x1 + 70) && (y2 + 70 >= y1 && y2 + 70 <= y1 + 140)// 왼쪽아래
-				|| (x2 + 53 >= x1 && x2 + 53 <= x1 + 70) && (y2 + 70 >= y1 && y2 + 70 <= y1 + 140))// 오른쪽아래
-		{
-			iscrash = true;
-			jump.crash();
-		}
+	public void crash() {
+		Ob_isrun = false;
+		t1.stop();
+		t2.stop();
+		iscrash = true;
+		jump.crash(ON);
 	}
 
 	// 스레드 끄고 삭제요청.
@@ -351,6 +453,15 @@ class ObstacleF extends JLabel implements Runnable {
 		Ob_isrun = false;
 		t1.stop();
 		t2.stop();
-		jump.removeobject(obstaclef);
+		jump.removeobject(ON);
+	}
+
+	public void setTimer(Runnable runnable, long delay) {
+		booking.schedule(new java.util.TimerTask() {
+			@Override
+			public void run() {
+				runnable.run();
+			}
+		}, delay);
 	}
 }

@@ -30,7 +30,6 @@ public class ShootingGame extends JPanel implements MouseListener, Runnable { //
 	private Image backgroundImage;
 	private int time = 0;
 	private int Limtime = 20; // 시간 제한 20초.
-
 	private int startime;
 
 	private Timer t1;
@@ -55,20 +54,14 @@ public class ShootingGame extends JPanel implements MouseListener, Runnable { //
 	private Random rand;
 	boolean isrun = false;
 	Music music;
-	List<Circle> circlelist = Collections.synchronizedList(new ArrayList<>());
-
-	Queue<Circle> removelist = new LinkedBlockingQueue<>(10);
+	List<Circle> circlelist;
+	Queue<Circle> removelist;
 
 	ShootingGame(MyFrame myFrame) { // 화면 구성.
 		setLayout(null);
 		this.myframe = myFrame;
-		this.shoot = this;
-		this.gamelife = 5;
-		lock = false;
-		isrun = false;
-		finish = false;
-		CN = 0;
-		startIndex = 0;
+		this.shoot = this;//close에 shoot == null이있어서 안돌아갔었음
+
 		rand = new Random();
 		backgroundImage = new ImageIcon(Main.class.getResource("images/Gamebackground.png")).getImage(); // 초기 백그라운드 설정
 
@@ -77,13 +70,10 @@ public class ShootingGame extends JPanel implements MouseListener, Runnable { //
 		Lbad = new RemoveBackground("Letter/bad.png").getImage();
 		Lpass = new RemoveBackground("Letter/passed.png").getImage();
 		Lfail = new RemoveBackground("Letter/failed.png").getImage();
-
-		life = new JLabel[this.gamelife];
 		booking = new java.util.Timer(false);
-		init();
 		setT();
-		addlife();
-		repaint();
+		circlelist = Collections.synchronizedList(new ArrayList<>());
+		removelist = new LinkedBlockingQueue<>(10);
 	}
 
 	@Override
@@ -96,7 +86,7 @@ public class ShootingGame extends JPanel implements MouseListener, Runnable { //
 			g.drawImage(letter, 535, 210, null);
 		}
 		// 끝났으면 글자 띄우기
-		if (yap) {
+		if (yap && finish) {
 			if (Lpass != null)
 				g.drawImage(Lpass, 535, 210, null);
 			if (Lfail != null)
@@ -106,6 +96,7 @@ public class ShootingGame extends JPanel implements MouseListener, Runnable { //
 
 	@Override
 	public void mouseClicked(MouseEvent e) {
+		System.out.println("마우스칼릭담");
 	}
 
 	@Override
@@ -138,26 +129,37 @@ public class ShootingGame extends JPanel implements MouseListener, Runnable { //
 	}
 
 	public void init() {
-
-		music = new Music("Lets_Practice_-_Rhythm_Heaven_Fever.MP3", false);
-		music.start();
+		this.gamelife = 5;
+		yap = false;
+		lock = false;
+		isrun = false;
+		finish = false;
+		CN = 0;
+		startIndex = 0;
 		gamelife = 5;
 		time = 0;
+		addlife();
+		repaint();
 	}
 
 	@Override
 	public void run() { // 스레드 동작.
+		init();
 		sleep(60);
-
 		repaint();
-		startime = 0;
-		sleep(1500);
-		isrun = true;
+
 		// start All thread
-		t1.start();
-		t2.start();
-		//t3.start();
-	//	t4.start();
+		setTimer(() -> {
+			music = new Music("Lets_Practice_-_Rhythm_Heaven_Fever.MP3", false);
+			startime = 0;
+			isrun = true;
+			t1.start();
+			t2.start();
+			music.start();
+		}, (long) 1500);
+
+		// t3.start();
+		// t4.start();
 	}
 
 	public void checklife() {
@@ -181,22 +183,16 @@ public class ShootingGame extends JPanel implements MouseListener, Runnable { //
 				myframe.gamepassed();
 			}, (long) 1300);
 		}
-
 	}
 
 	public void close() {
+	
 		stopAll();
 		music.stop();
 		circlelist.clear();// 리스트 삭 제
 		removeAll();
-		removeMouseListener(this);
-		new Thread(() -> {
-			try {
-				Thread.sleep(250);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		});
+
+		clearlife();
 	}
 
 //	public void checkT() {
@@ -212,6 +208,7 @@ public class ShootingGame extends JPanel implements MouseListener, Runnable { //
 
 	public void setT() {
 		t1 = new Timer(40, (e) -> {
+			System.out.println("ㅁㅁㅁ");
 			istimeout();
 			removeobject();
 			repaint();
@@ -228,7 +225,6 @@ public class ShootingGame extends JPanel implements MouseListener, Runnable { //
 		t1.stop();
 		t2.stop();
 		isrun = false;
-		shoot = null;
 	}
 
 	public void istimeout() {
@@ -297,7 +293,7 @@ public class ShootingGame extends JPanel implements MouseListener, Runnable { //
 	}
 
 	public void removeobject() {
-		try {
+		if (!lock) {
 			lock = true;
 			Circle temp;
 			while (!removelist.isEmpty()) {
@@ -309,8 +305,6 @@ public class ShootingGame extends JPanel implements MouseListener, Runnable { //
 			}
 			lock = false;
 			isremoveAll = true;
-		} catch (Exception e) {
-			e.printStackTrace();
 		}
 	}
 
@@ -332,10 +326,17 @@ public class ShootingGame extends JPanel implements MouseListener, Runnable { //
 	}
 
 	public void addlife() {
+		life = new JLabel[this.gamelife];
 		for (int i = 0; i < this.gamelife; i++) {
 			life[i] = new JL_Life();
 			life[i].setLocation(100 + i * 80, 600);
 			add(life[i]);
+		}
+	}
+
+	public void clearlife() {
+		for (int i = 0; i < this.gamelife; i++) {
+			this.remove(life[i]);
 		}
 	}
 }

@@ -1,3 +1,7 @@
+package org.minigame.panels;
+
+import java.awt.Color;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.Rectangle;
@@ -19,6 +23,11 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.KeyStroke;
 import javax.swing.Timer;
+
+import org.minigame.main.Main;
+import org.minigame.objects.JL_Life;
+import org.minigame.objects.Stickman;
+import org.minigame.tools.RemoveBackground;
 
 public class Avoid extends JPanel implements Runnable { // 표적 맞추기 게임
 
@@ -45,6 +54,8 @@ public class Avoid extends JPanel implements Runnable { // 표적 맞추기 게임
 	private long startime = 0;
 	private long curtime = 0;
 	private int Limtime = 20; // 시간 제한 20초.
+	private int callcount;
+	private int time;
 	private int countO;
 	private int gamelife;
 	private int temp1[];
@@ -60,34 +71,36 @@ public class Avoid extends JPanel implements Runnable { // 표적 맞추기 게임
 		oblist = new Hashtable<>();
 		removelist = new LinkedBlockingQueue<>(30);
 		avoid = this;
-		backgroundImage = new ImageIcon(Main.class.getResource("images/Jumpbackground.png")).getImage();
-		
+		backgroundImage = new ImageIcon(getClass().getResource("../images/Jumpbackground.png")).getImage();
+		callcount = 0;
 		letter = new RemoveBackground("Letter/avoid.png").getImage();
 		Lpass = new RemoveBackground("Letter/passed.png").getImage();
 		Lfail = new RemoveBackground("Letter/failed.png").getImage();
 		booking = new java.util.Timer(false);
 		Random r = new Random();
-		boolean[] appear = new boolean[24];//1280/53 = 
-		temp1 = new int[11]; //총 12개 장애물 생성. 
+		boolean[] appear = new boolean[24];// 1280/53 =
+		temp1 = new int[11]; // 총 12개 장애물 생성.
 		t = new Timer[2];
 		t[0] = new Timer(50, (e) -> {
 			istimeout();
 			checklife();// 라이프 검사.
 			if (!lock && isrun)
 				removeobject();
+			curtime = System.currentTimeMillis() - startime;
+			repaint();
 		});
 
 		t[1] = new Timer(3000, (e) -> {
-			for(int i =0 ; i <temp1.length;i++) {
+			for (int i = 0; i < temp1.length; i++) {
 				temp1[i] = r.nextInt(24);
 				appear[temp1[i]] = true;
 			}
-			for(int i =0 ; i<appear.length ;i++) {
-					if(appear[i])
-						makeobject(i*53);
+			for (int i = 0; i < appear.length; i++) {
+				if (appear[i])
+					makeobject(i * 53);
 			}
-			for(int i =0 ; i < temp1.length;i++) {
-				appear[temp1[i]] = false; //초기화.
+			for (int i = 0; i < temp1.length; i++) {
+				appear[temp1[i]] = false; // 초기화.
 			}
 		});
 	}
@@ -99,6 +112,7 @@ public class Avoid extends JPanel implements Runnable { // 표적 맞추기 게임
 		isdown = false;
 		lock = false;
 		finish = false;
+
 		add(stickman);
 		keybind();
 		requestFocus();
@@ -133,6 +147,8 @@ public class Avoid extends JPanel implements Runnable { // 표적 맞추기 게임
 
 	@Override
 	public void run() {
+		callcount++;
+
 		init();
 		sleep((long) 60);
 		repaint();
@@ -157,11 +173,11 @@ public class Avoid extends JPanel implements Runnable { // 표적 맞추기 게임
 		this.getActionMap().clear();
 		stickman.stopAll();
 		remove(stickman);
+		this.removeAll();
 		clearlife();
 		while (removelist.size() > 0) {
 			removeobject();
 			oblist.clear();
-
 		}
 		sleep((long) 5);
 	}
@@ -217,7 +233,7 @@ public class Avoid extends JPanel implements Runnable { // 표적 맞추기 게임
 	}
 
 	public void makeobject(int x) {
-		obf = new ObstacleF22(avoid, countO++,x);
+		obf = new ObstacleF22(avoid, countO++, x, callcount);
 		addobject(obf);// 리스트에 추가.
 		obf.run();
 	}
@@ -232,7 +248,7 @@ public class Avoid extends JPanel implements Runnable { // 표적 맞추기 게임
 	}
 
 	public void removeobject() { // 오버로딩
-		try {
+		if (!lock) {
 			lock = true;
 			int a;
 			while (!removelist.isEmpty()) {
@@ -243,8 +259,6 @@ public class Avoid extends JPanel implements Runnable { // 표적 맞추기 게임
 				repaint();
 			}
 			lock = false;
-		} catch (Exception e) {
-			e.printStackTrace();
 		}
 	}
 
@@ -262,6 +276,15 @@ public class Avoid extends JPanel implements Runnable { // 표적 맞추기 게임
 			if (Lfail != null)
 				g.drawImage(Lfail, 535, 210, null);
 		}
+		g.setFont(new Font("Gulim", Font.BOLD, 50));
+		g.setColor(Color.black);
+		g.drawString("남은목숨 : " + myframe.life(), 900, 70);
+		g.drawString("점수 : " + myframe.getpoint() , 20, 70);
+		time  = Limtime - (int) curtime / 1000 ;
+		if(time < 0)
+			g.drawString("남은시간 : "+ 20, 900, 650);
+		if(time>=0)
+		g.drawString("남은시간 : "+time, 900, 650);
 	}
 
 	public boolean isrun() {
@@ -347,6 +370,10 @@ public class Avoid extends JPanel implements Runnable { // 표적 맞추기 게임
 			}
 		}, delay);
 	}
+
+	public int getCallCount() {
+		return callcount;
+	}
 }
 
 //===================================================================================================================
@@ -362,6 +389,7 @@ class ObstacleF22 extends JLabel implements Runnable {
 	int x;
 	int y;
 	int count;
+	private int callcount;
 	private int mSpeed;
 	private int sumSpeed;
 	private int polx[] = { 32, 0, 32, 52, 53 };
@@ -373,17 +401,18 @@ class ObstacleF22 extends JLabel implements Runnable {
 	Timer t1;
 	Timer t2;
 
-	ObstacleF22(Avoid avoid, int n, int x) {
+	ObstacleF22(Avoid avoid, int n, int x, int callcount) {
 		this.avoid = avoid;
 		this.Num = n;
 		this.x = x; // 나중에 가변 코드 작성.
+		this.callcount = callcount;
 		y = 0;
 		r = new Rectangle[2];
 		init();
 	}
 
 	public void init() {
-		imageF = new ImageIcon(Main.class.getResource("images/ruby.png"));
+		imageF = new ImageIcon(getClass().getResource("../images/ruby.png"));
 		setSize(53, 70);
 		setIcon(imageF);
 		Ob_isrun = false;
@@ -398,7 +427,7 @@ class ObstacleF22 extends JLabel implements Runnable {
 			moveOB();
 		});
 		booking = new java.util.Timer(false);
-		sumSpeed=  0;
+		sumSpeed = 0;
 	}
 
 	@Override
@@ -417,12 +446,12 @@ class ObstacleF22 extends JLabel implements Runnable {
 		setTimer(() -> {
 			if (!iscrash)// 충돌안했으면
 				finish();
-		}, 50*33 ); 
+		}, 50 * 33);
 		// 1. 1씩 줄어들때총이동거리 512 = time* 1000/(50) * mSpeed
 		// 522 * 50 / mSpeed 초
-		//2. 미끄러질때 
-		//-1 + Math.sqrt(1045) 32.3264..--> 32
-		//522 = tiem * 32 * 1000/50
+		// 2. 미끄러질때
+		// -1 + Math.sqrt(1045) 32.3264..--> 32
+		// 522 = tiem * 32 * 1000/50
 	}
 
 	public void setOb_run(boolean isrun) { // main에서 조정하는거.
@@ -435,7 +464,7 @@ class ObstacleF22 extends JLabel implements Runnable {
 
 	public void moveOB() { // 아래로 이동합니다.
 		sumSpeed += mSpeed;
-		y +=sumSpeed;
+		y += sumSpeed;
 		this.setLocation(x, y);
 	}
 
@@ -450,7 +479,7 @@ class ObstacleF22 extends JLabel implements Runnable {
 
 			r[1].setLocation(avoid.getmanX(), avoid.getmanY());
 			for (int i = 0; i < polx.length; i++) {// 드릴 꼭짓점.
-				if (r[1].contains(polx[i]+x, poly[i] +y)) {
+				if (r[1].contains(polx[i] + x, poly[i] + y)) {
 					iscrash = true;
 					finish();
 					break;
@@ -473,10 +502,12 @@ class ObstacleF22 extends JLabel implements Runnable {
 	public void finish() {
 		Ob_isrun = false;
 		t1.stop();
-		if (iscrash) {
-			avoid.crash(this.Num);
-		} else {
-			avoid.removeobject(this.Num);
+		if (avoid.getCallCount() == callcount) { // 다음 페이지에서 호출 방지.
+			if (iscrash) {
+				avoid.crash(this.Num);
+			} else {
+				avoid.removeobject(this.Num);
+			}
 		}
 	}
 

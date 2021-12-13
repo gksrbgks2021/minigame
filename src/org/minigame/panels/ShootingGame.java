@@ -1,13 +1,12 @@
+package org.minigame.panels;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics;
-import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Queue;
 import java.util.Random;
@@ -18,36 +17,36 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 
+import org.minigame.main.Main;
+import org.minigame.objects.Circle;
+import org.minigame.objects.JL_Life;
+import org.minigame.tools.Music;
+import org.minigame.tools.RemoveBackground;
+
 public class ShootingGame extends JPanel implements MouseListener, Runnable { // 표적 맞추기 게임
 	// 랜덤 좌표에 표적 생성. (나타났다 사라지는 표현. 난이도별 시간초 있음.)
 	// 시간 안에 마우스 클릭 해야함.()
 	// 마우스 클릭하면, 점수 + 1 .
 	private ShootingGame shoot;
 	JLabel circle;
-	int gamelife;
-	private int CN;
+	
 	private MyFrame myframe;
 	private Image backgroundImage;
-	private int time = 0;
-	private int Limtime = 20; // 시간 제한 20초.
-	private int startime;
-
-	private Timer t1;
-	private Timer t2;
-	private Timer t3;
-	private Timer t4;
-//	private Thread t4;
-	private boolean finish;
-
-	private boolean yap;
-	private boolean lock; // 제거 메소드 락 .
-	private boolean isremoveAll; // 제거 리스트 큐가 다 제거되면 OK
 	private Image letter;
-	private Image Lgood;
-	private Image Lbad;
 	private Image Lpass;
 	private Image Lfail;
 	private JLabel[] life;
+	private int Limtime = 20; // 시간 제한 20초.
+	private int startime;
+	int gamelife;
+	private Timer t1;
+	private Timer t2;
+	private boolean finish;
+	private boolean yap;
+	private boolean lock; // 제거 메소드 락 .
+	private boolean isremoveAll; // 제거 리스트 큐가 다 제거되면 OK
+	
+	private int CN;
 	private int startIndex;
 	private java.util.Timer booking;
 	private Circle c;
@@ -63,11 +62,9 @@ public class ShootingGame extends JPanel implements MouseListener, Runnable { //
 		this.shoot = this;//close에 shoot == null이있어서 안돌아갔었음
 
 		rand = new Random();
-		backgroundImage = new ImageIcon(Main.class.getResource("images/Gamebackground.png")).getImage(); // 초기 백그라운드 설정
+		backgroundImage = new ImageIcon(getClass().getResource(("../images/Gamebackground.png"))).getImage(); // 초기 백그라운드 설정
 
 		letter = new RemoveBackground("Letter/click.png").getImage();
-		Lgood = new RemoveBackground("Letter/good.png").getImage();
-		Lbad = new RemoveBackground("Letter/bad.png").getImage();
 		Lpass = new RemoveBackground("Letter/passed.png").getImage();
 		Lfail = new RemoveBackground("Letter/failed.png").getImage();
 		booking = new java.util.Timer(false);
@@ -92,11 +89,15 @@ public class ShootingGame extends JPanel implements MouseListener, Runnable { //
 			if (Lfail != null)
 				g.drawImage(Lfail, 535, 210, null);
 		}
+		g.setFont(new Font("Gulim", Font.BOLD, 50));
+		g.setColor(Color.black);
+		g.drawString("남은목숨 : "+ myframe.life(), 900, 70);
+		g.drawString("점수 : " + myframe.getpoint() , 20, 70);
+		g.drawString("남은시간 : "+(Limtime - startime ), 900, 650);
 	}
 
 	@Override
 	public void mouseClicked(MouseEvent e) {
-		System.out.println("마우스칼릭담");
 	}
 
 	@Override
@@ -134,12 +135,11 @@ public class ShootingGame extends JPanel implements MouseListener, Runnable { //
 		lock = false;
 		isrun = false;
 		finish = false;
+		repaint();
 		CN = 0;
 		startIndex = 0;
-		gamelife = 5;
-		time = 0;
 		addlife();
-		repaint();
+		
 	}
 
 	@Override
@@ -158,11 +158,10 @@ public class ShootingGame extends JPanel implements MouseListener, Runnable { //
 			music.start();
 		}, (long) 1500);
 
-		// t3.start();
-		// t4.start();
 	}
 
 	public void checklife() {
+		System.out.println(gamelife);
 		if (gamelife <= 0 && !finish) // 게임종료시
 		{
 			yap = true;
@@ -208,9 +207,9 @@ public class ShootingGame extends JPanel implements MouseListener, Runnable { //
 
 	public void setT() {
 		t1 = new Timer(40, (e) -> {
-			System.out.println("ㅁㅁㅁ");
 			istimeout();
 			removeobject();
+			checklife();
 			repaint();
 		});
 		t2 = new Timer(1000, (e) -> {
@@ -267,8 +266,6 @@ public class ShootingGame extends JPanel implements MouseListener, Runnable { //
 		gamelife--;
 		System.out.println("원을 클릭하세요 현재 라이프 : " + gamelife);
 		minuslifeImage();
-		if (gamelife == 0)
-			checklife();
 	}
 
 	public void minuslifeImage() {

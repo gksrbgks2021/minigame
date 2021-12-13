@@ -1,3 +1,6 @@
+package org.minigame.panels;
+import java.awt.Color;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.Polygon;
@@ -14,6 +17,10 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 
+import org.minigame.main.Main;
+import org.minigame.objects.JL_Life;
+import org.minigame.objects.Stickman;
+import org.minigame.tools.RemoveBackground;
 public class JumpGame extends JPanel implements Runnable, KeyListener { // 표적 맞추기 게임
 	int gamelife;
 	private MyFrame myframe;
@@ -31,29 +38,28 @@ public class JumpGame extends JPanel implements Runnable, KeyListener { // 표적 
 	private boolean yap;
 	private boolean finish;
 	private Random r;
-	private int time = 0;
+	private long curtime = 0; // 노드 시간 밀리초단위
 	private int Limtime = 20; // 시간 제한 20초.
-	private int x;
-	private int y;
+private int time=0;
 	private int ON;
+	private int calltime;//부른횟수
+	
 	private long startime = 0;
 	private Timer t[];
 	private java.util.Timer booking;
 	// volatile 키워드를 선언함으로서 쓰기 읽기 작업은 메인 메모리에서 이뤄짐.
-	private volatile boolean isremoveAll;
 	ObstacleF obf;
 	Queue<Integer> removelist;
 	Hashtable<Integer, ObstacleF> oblist;
 
 	JumpGame(MyFrame myFrame) {
 		setLayout(null);
-		gamelife = 3;
+		this.jump = this;
 		this.myframe = myFrame;
 		this.stickman = new Stickman();
-		lock = false;
-		jump = this;
+		calltime =0 ;
 		r = new Random();
-		backgroundImage = new ImageIcon(Main.class.getResource("images/Jumpbackground.png")).getImage();
+		backgroundImage = new ImageIcon(getClass().getResource("../images/Jumpbackground.png")).getImage();
 		letter = new RemoveBackground("Letter/jump.png").getImage();
 		Lpass = new RemoveBackground("Letter/passed.png").getImage();
 		Lfail = new RemoveBackground("Letter/failed.png").getImage();
@@ -61,20 +67,22 @@ public class JumpGame extends JPanel implements Runnable, KeyListener { // 표적 
 		oblist = new Hashtable<>();
 		removelist = new LinkedBlockingQueue<>(10);
 		booking = new java.util.Timer(false);
-
-		add(stickman);
-		addlife();
-		repaint();
+		setT();
+		
 	}
 
 	public void init() {
-		ON = 0;
+		gamelife = 3;
+		yap = false;
+		lock = false;
+		ON = 0; //0으로 초기화
 		isdown = false;
-		isremoveAll = false;
 		addKeyListener(this);
 		requestFocus();
-		setT();
+		add(stickman);
 		finish = false;
+		addlife();
+		repaint();
 	}
 
 	public void setT() {
@@ -83,17 +91,22 @@ public class JumpGame extends JPanel implements Runnable, KeyListener { // 표적 
 			istimeout();
 			removeobject();
 			checklife();// 라이프 검사.
+			curtime = System.currentTimeMillis() - startime;
 			repaint();
 		});
 
 		t[1] = new Timer(2000, (e) -> {
 			makeobject();
 		});
-
 	}
 
 	@Override
 	public void run() {
+		startime = 0;
+		calltime++;
+		yap = false;
+		isrun = false;
+		finish = false;
 		sleep(60);
 
 		repaint();
@@ -118,11 +131,13 @@ public class JumpGame extends JPanel implements Runnable, KeyListener { // 표적 
 		// 스레드 종료
 		finish = true;
 		repaint();
-		sleep(400); // 스레드 슬립
+		sleep(4); // 스레드 슬립
 		stickman.stopStickman();
-		oblist.clear();
 		stopT();
-		removelist.clear();
+		remove(stickman);
+		clearlife();
+		this.removeAll();
+		this.removeKeyListener(this);
 	}
 
 	public void startT() {
@@ -133,7 +148,6 @@ public class JumpGame extends JPanel implements Runnable, KeyListener { // 표적 
 			t[i].start();
 		}
 		stickman.runStickman();
-
 	}
 
 	public void istimeout() {
@@ -168,6 +182,10 @@ public class JumpGame extends JPanel implements Runnable, KeyListener { // 표적 
 			repaint();
 			setTimer(() -> {
 				close();
+			}, (long) 1600);
+			setTimer(() -> {
+				removelist.clear(); //다 없어질때까지 갭을 둔다. 
+				oblist.clear();
 				myframe.gamefailed(); // 실패
 			}, (long) 2000);
 		} else if (isrun == false && gamelife > 0 && !finish) {// 게임 통과시.
@@ -183,13 +201,10 @@ public class JumpGame extends JPanel implements Runnable, KeyListener { // 표적 
 	}
 
 	public void makeobject() { // 오브젝트 생성.
-
-		isremoveAll = false;
-		obf = new ObstacleF(jump, ON, r.nextInt(2));
+		obf = new ObstacleF(jump, ON, r.nextInt(2) , calltime);
 		oblist.put(ON++, obf);
 		add(obf);
 		obf.run();
-
 	}
 
 	public void removeobject(int num) {
@@ -211,7 +226,15 @@ public class JumpGame extends JPanel implements Runnable, KeyListener { // 표적 
 			if (Lfail != null)
 				g.drawImage(Lfail, 535, 210, null);
 		}
-
+		g.setFont(new Font("Gulim", Font.BOLD, 50));
+		g.setColor(Color.black);
+		g.drawString("남은목숨 : "+ myframe.life(), 900, 70);
+		g.drawString("점수 : " + myframe.getpoint() , 20, 70);
+		time = Limtime - (int) curtime/1000 ;
+		if(time < 0)
+			g.drawString("남은시간 : "+ 20, 900, 650);
+		if(time>=0)
+		g.drawString("남은시간 : "+time, 900, 650);
 	}
 
 	@Override
@@ -255,18 +278,17 @@ public class JumpGame extends JPanel implements Runnable, KeyListener { // 표적 
 	}
 
 	public void removeobject() {
-		try {
+		if (!lock) {
 			lock = true;
 			int temp;
 			while (!removelist.isEmpty()) {
 				temp = removelist.poll();
-				remove(oblist.get(temp));
+				if(oblist.containsKey(temp))//들어있으면. 
+				remove(oblist.get(temp)); //cannot read field parent
+				oblist.remove(temp);
 				repaint();
 			}
 			lock = false;
-			isremoveAll = true;
-		} catch (Exception e) {
-			e.printStackTrace();
 		}
 	}
 
@@ -287,7 +309,11 @@ public class JumpGame extends JPanel implements Runnable, KeyListener { // 표적 
 			add(life[i]);
 		}
 	}
-
+	public void clearlife() {
+		for (int i = 0; i < this.gamelife; i++) {
+			this.remove(life[i]);
+		}
+	}
 	public void minuslifeImage() {
 		if (gamelife > 0) {
 			remove(life[gamelife]);
@@ -303,6 +329,10 @@ public class JumpGame extends JPanel implements Runnable, KeyListener { // 표적 
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+	//게임이 끝나고 removeAll 호출한 다음 게임에서 객체 삭제 요구를 없에기 위함.
+	public int getCallTime() { 
+		return calltime;
 	}
 }
 
@@ -325,15 +355,17 @@ class ObstacleF extends JLabel implements Runnable {
 	private boolean Ob_isrun;
 	private boolean iscrash;// 충돌 체크 여부
 	private int type;
+	private int calltime;
 	Rectangle r[];
 	Polygon p;
 	Timer t1;
 	Timer t2;
 	java.util.Timer booking;
 
-	public ObstacleF(JumpGame jump, int num, int type) {
-		count = 0 ;
+	public ObstacleF(JumpGame jump, int num, int type,int calltime) {
+		count = 0;
 		this.jump = jump;
+		this.calltime = calltime;
 		x = 1210;
 		y = 553;
 		mSpeed = Main.GAME_SPEED + 7;
@@ -350,8 +382,8 @@ class ObstacleF extends JLabel implements Runnable {
 
 	public void init() {
 		imageF = new ImageIcon[2];
-		imageF[0] = new ImageIcon(Main.class.getResource("images/obstacleF.png"));
-		imageF[1] = new ImageIcon(Main.class.getResource("images/drill.png"));
+		imageF[0] = new ImageIcon(getClass().getResource("../images/obstacleF.png"));
+		imageF[1] = new ImageIcon(getClass().getResource("../images/drill.png"));
 
 		Ob_isrun = false;
 		obstaclef = this;
@@ -367,7 +399,7 @@ class ObstacleF extends JLabel implements Runnable {
 		t2 = new Timer(30, e -> { // move.
 			x -= (mSpeed);
 			setLocation(x, y);
-			count ++;
+			count++;
 		});
 	}
 
@@ -429,8 +461,8 @@ class ObstacleF extends JLabel implements Runnable {
 
 			if (type == 1) {
 				r[1].setBounds(jump.getmanX(), jump.getmanY(), 70, jump.getheight());
-				for (int i = 0; i < 5; i++) {//드릴 꼭짓점.
-					if (r[1].contains(polx[i] - (count*mSpeed), poly[i])) {
+				for (int i = 0; i < 5; i++) {// 드릴 꼭짓점.
+					if (r[1].contains(polx[i] - (count * mSpeed), poly[i])) {
 						crash();
 						break;
 					}
@@ -445,6 +477,7 @@ class ObstacleF extends JLabel implements Runnable {
 		t1.stop();
 		t2.stop();
 		iscrash = true;
+		if(calltime == jump.getCallTime())
 		jump.crash(ON);
 	}
 
@@ -453,6 +486,7 @@ class ObstacleF extends JLabel implements Runnable {
 		Ob_isrun = false;
 		t1.stop();
 		t2.stop();
+		if(calltime == jump.getCallTime())
 		jump.removeobject(ON);
 	}
 

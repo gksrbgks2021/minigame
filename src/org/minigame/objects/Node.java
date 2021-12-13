@@ -1,8 +1,12 @@
+package org.minigame.objects;
 import java.awt.Dimension;
 
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.Timer;
+
+import org.minigame.main.Main;
+import org.minigame.panels.RhythmGame;
 
 public class Node extends JLabel implements Runnable {
 	private RhythmGame game;
@@ -13,6 +17,7 @@ public class Node extends JLabel implements Runnable {
 	private String direction;
 	private int Ontime;// 가운데에 도달하는 시간.
 	private int ObjectNum;
+	private int calltime;
 	private boolean isrun;
 	private boolean click;
 	private Timer work;
@@ -20,17 +25,19 @@ public class Node extends JLabel implements Runnable {
 	// 1 2
 	// 4 
 	 
-	public Node(RhythmGame game, String direction, int time, int num) {
+	public Node(RhythmGame game, String direction, int time, int num, int calltime) {
 		this.setSize(new Dimension(70, 70));
 		this.direction = direction;
 		this.ObjectNum = num;
 		this.game = game;
 		Ontime = time;
 		// 각 방향에 맞는 이미지 그립니다.
-		nodeImage = new ImageIcon(Main.class.getResource("images/" + this.direction + ".png")); // 70 * 70
-		nodeImageActived = new ImageIcon(Main.class.getResource("images/active.png"));
-		nodeImageDead = new ImageIcon(Main.class.getResource("images/failed.png"));
+		nodeImage = new ImageIcon(getClass().getResource("../images/" + this.direction + ".png")); // 70 * 70
+		nodeImageActived = new ImageIcon(getClass().getResource("../images/active.png"));
+		nodeImageDead = new ImageIcon(getClass().getResource("../images/failed.png"));
 		this.setIcon(nodeImage);
+		this.calltime = calltime;
+		
 		switch (this.direction) {
 		case "left": // 왼
 			// 10밀리세컨드로 speed만큼 뒤로 뺴주면,
@@ -89,6 +96,7 @@ public class Node extends JLabel implements Runnable {
 
 	@Override
 	public void run() {
+		
 		isrun = true;
 		click = false;
 		work.start();
@@ -150,17 +158,18 @@ public class Node extends JLabel implements Runnable {
 				game.removeobject(getON(), 1, getDirection());
 				break;
 			}
-
 			terminated();
 			game.removeobject(getON(), 2, getDirection());
-
 			break;
 		}
 	}
 
 	public void failed() {// 삭제에 실패 ?
+		
 		isrun = false;
 		work.stop();
+		if(calltime != game.getCallTime())return ;
+		
 		if (!click) {
 			setIcon(nodeImageDead);
 			game.removeobject(getON(), -1, getDirection());

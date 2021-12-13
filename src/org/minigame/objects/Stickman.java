@@ -1,10 +1,10 @@
-import java.awt.Graphics2D;
-
+package org.minigame.objects;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.Timer;
 
-class Stickman extends JLabel {
+import org.minigame.main.Main;
+public class Stickman extends JLabel {
 	// 좌표.
 	private int x;
 	private int y;
@@ -50,14 +50,14 @@ class Stickman extends JLabel {
 	public void setlabel() {
 
 		manUp = new ImageIcon[5];
-		manUp[0] = new ImageIcon(Main.class.getResource("images/Player2.png"));
-		manUp[1] = new ImageIcon(Main.class.getResource("images/Player2_1.png"));
-		manUp[2] = new ImageIcon(Main.class.getResource("images/Player2_2.png"));
-		manUp[3] = new ImageIcon(Main.class.getResource("images/Player2_3.png"));
-		manUp[4] = new ImageIcon(Main.class.getResource("images/Player2_4.png"));
-		manDown = new ImageIcon(Main.class.getResource("images/playerdown1.png"));
-		manJump = new ImageIcon(Main.class.getResource("images/jump_1.png"));
-		manleft1 = new ImageIcon(Main.class.getResource("images/Player2_l.png"));
+		manUp[0] = new ImageIcon(getClass().getResource("../images/Player2.png"));
+		manUp[1] = new ImageIcon(getClass().getResource("../images/Player2_1.png"));
+		manUp[2] = new ImageIcon(getClass().getResource("../images/Player2_2.png"));
+		manUp[3] = new ImageIcon(getClass().getResource("../images/Player2_3.png"));
+		manUp[4] = new ImageIcon(getClass().getResource("../images/Player2_4.png"));
+		manDown = new ImageIcon(getClass().getResource("../images/playerdown1.png"));
+		manJump = new ImageIcon(getClass().getResource("../images/jump_1.png"));
+		manleft1 = new ImageIcon(getClass().getResource("../images/Player2_l.png"));
 		height = 140;
 		setSize(70, height);
 		setIcon(manUp[stickanime]);
@@ -121,6 +121,8 @@ class Stickman extends JLabel {
 
 	public void stopStickman() { // 움직임 구현.
 		t[3].stop();
+		stickanime = 0;
+		setIcon(manUp[stickanime]);//초기화
 	}
 
 	public void stopAll() {

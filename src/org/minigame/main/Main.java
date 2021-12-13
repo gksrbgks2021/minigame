@@ -1,12 +1,7 @@
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-
-import javax.swing.AbstractAction;
-import javax.swing.ActionMap;
-import javax.swing.JComponent;
-import javax.swing.KeyStroke;
+package org.minigame.main;
 import javax.swing.SwingUtilities;
-import javax.swing.InputMap;
+
+import org.minigame.panels.MyFrame;
 
 public class Main {
 	public static final int SCREEN_WIDTH = 1280;

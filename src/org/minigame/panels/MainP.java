@@ -1,23 +1,25 @@
+package org.minigame.panels;
 import java.awt.Cursor;
 import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.ArrayList;
+
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JPanel;
 
+import org.minigame.main.Main;
+import org.minigame.tools.Music;
 public class MainP extends JPanel implements Runnable{
 	private MyFrame myframe;
-	private Image screenImage;
-	private Graphics screenGraphic;
 	private Image backgroundImage;
-	private ImageIcon dancingmachine = new ImageIcon(Main.class.getResource("images/skudance.gif"));
-	private ImageIcon startbtndefault = new ImageIcon(Main.class.getResource("images/startbtn.png"));
-	private ImageIcon startbtndentered = new ImageIcon(Main.class.getResource("images/startbtnentered.png"));
-	private ImageIcon endbtndefault = new ImageIcon(Main.class.getResource("images/endbtndefault.png"));
-	private ImageIcon endbtndentered = new ImageIcon(Main.class.getResource("images/endbtnentered.png"));
+	
+	private ImageIcon dancingmachine = new ImageIcon(getClass().getResource("../images/skudance.gif"));
+	private ImageIcon startbtndefault = new ImageIcon(getClass().getResource("../images/startbtn.png"));
+	private ImageIcon startbtndentered = new ImageIcon(getClass().getResource("../images/startbtnentered.png"));
+	private ImageIcon endbtndefault = new ImageIcon(getClass().getResource("../images/endbtndefault.png"));
+	private ImageIcon endbtndentered = new ImageIcon(getClass().getResource("../images/endbtnentered.png"));
 	
 	//Jbutton
 	private JButton scoreboard = new JButton(dancingmachine); // 클릭하면 점수판 보여주는거.
@@ -38,7 +40,6 @@ public class MainP extends JPanel implements Runnable{
 			public void mouseEntered(MouseEvent e) { // 마우스 포커싱일때 점수판이 보여진다.
 				scoreboard.setIcon(null);
 				/* set scoreboard */
-
 			}
 
 			@Override
@@ -110,7 +111,7 @@ public class MainP extends JPanel implements Runnable{
 	}
 	public void init(){
 		this.setLayout(null);
-		backgroundImage = new ImageIcon(Main.class.getResource("images/Startbackground.png")).getImage(); // 초기 백그라운드 설정
+		backgroundImage = new ImageIcon(getClass().getResource("../images/Startbackground.png")).getImage(); // 초기 백그라운드 설정
 	
 	}
 	@Override

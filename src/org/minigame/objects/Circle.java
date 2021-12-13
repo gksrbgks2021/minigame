@@ -1,11 +1,12 @@
-import java.awt.Graphics;
-import java.util.List;
+package org.minigame.objects;
 import java.util.Random;
 
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 
-class Circle extends JLabel implements Runnable {
+import org.minigame.panels.ShootingGame;
+import org.minigame.main.Main;
+public class Circle extends JLabel implements Runnable {
 	private int radius;
 	private int circleX;// x좌표 y 좌표
 	private int circleY;
@@ -20,17 +21,20 @@ class Circle extends JLabel implements Runnable {
 	ImageIcon img2; // 검정 원
 	Random rand = new Random();
 
-	Circle(ShootingGame shootinggame, int Onum,int r) {
+	public Circle(ShootingGame shootinggame, int Onum,int r) {
 		this.shoot = shootinggame;
 		this.CN = Onum;
 		this.radius = 70;
+		
 		type = r;
 		initCircle();
+		
 	}
 
 	public void initCircle() {
-		img1 = new ImageIcon(Main.class.getResource("images/redcircle.png"));
-		img2 = new ImageIcon(Main.class.getResource("images/Circle2.png"));
+		img1 = new ImageIcon(getClass().getResource("../images/redcircle.png"));
+		img2 = new ImageIcon(getClass().getResource("../images/Circle2.png"));
+		
 		if (type == 0) {
 			setIcon(img1);
 			countClick =1 ;
@@ -92,6 +96,7 @@ class Circle extends JLabel implements Runnable {
 		if(countClick <=0) {
 			isrun = false;
 			System.out.println(CN+"번호 제거요청");
+			if(shoot != null)
 			shoot.Requestremovecircle(CN,false);
 		}
 	}

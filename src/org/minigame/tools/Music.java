@@ -1,6 +1,10 @@
+package org.minigame.tools;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+
+import org.minigame.main.Main;
+
 import javazoom.jl.player.Player;
 
 public class Music extends Thread {
@@ -13,7 +17,7 @@ private Player player;
 		public Music (String name, boolean Continue) {
 			try {
 				this.Continue = Continue ;
-				file  = new File(Main.class.getResource("/music/" + name).toURI());
+				file  = new File(getClass().getResource(("../music/" + name)).toURI());
 				fis = new FileInputStream(file);
 				bis = new BufferedInputStream(fis);
 				player = new Player(bis);

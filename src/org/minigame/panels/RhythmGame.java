@@ -1,4 +1,7 @@
+package org.minigame.panels;
+
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.event.ActionEvent;
@@ -24,10 +27,15 @@ import javax.swing.JPanel;
 import javax.swing.KeyStroke;
 import javax.swing.Timer;
 
+import org.minigame.main.Main;
+import org.minigame.objects.JL_Life;
+import org.minigame.objects.Node;
+import org.minigame.tools.Music;
+import org.minigame.tools.RemoveBackground;
+
 public class RhythmGame extends JPanel implements Runnable {
-	int gamelife ;
-	boolean ispassed = true;
-	boolean lock = false;
+	private MyFrame myframe;
+	private RhythmGame game;
 	private Image backgroundImage;
 	private Image rough1Image;
 	private Image rough2Image;
@@ -42,40 +50,39 @@ public class RhythmGame extends JPanel implements Runnable {
 	private JLabel[] life;
 	Music music;
 	boolean isshow = true;
-	private MyFrame myframe;
-	private RhythmGame game;
+
 	Queue<Node> waitinglist = new LinkedList<>(); // ready큐
 	Queue<Node> removelist = new LinkedBlockingQueue<>(10);
-	
-	ImageFilter f;
-	public Node node;
-	private Timer t1;
-	private Timer makeNode;
-	private java.util.Timer terminate;
-	private double startTime;
-	private boolean isrun;
-	private long startime;
-	private long curtime = 0;
-	private int Limtime = 20; // 시간 제한 20초.
-	private int firstime;
 	List<Node> nodeList_L = new ArrayList<>(); // 리스트 추가.
 	List<Node> nodeList_R = new ArrayList<>();
 	List<Node> nodeList_T = new ArrayList<>();
 	List<Node> nodeList_D = new ArrayList<>();
-
+	ImageFilter f;
+	public Node node;
+	private Timer t[];
+	private java.util.Timer booking;
+	private double startTime;
+	private boolean isrun;
+	boolean ispassed = true;
+	boolean lock = false;
+	private long startime;
+	private long curtime = 0; // 노드 시간 밀리초단위
+	private int time;
+	private int Limtime = 20; // 시간 제한 20초.
 	private int Index_L;
 	private int Index_R;
 	private int Index_T;
 	private int Index_D;
+	private int pushright;
+	private int gamelife;
+	private int calltime;
 	private volatile boolean isremoveAll;
 	private boolean up;
 	private boolean down;
 	private boolean left;
 	private boolean right;
 	private boolean finish;
-	private int pushright;
 	private boolean yap;
-	int temp;
 
 //===========
 //...1
@@ -87,15 +94,12 @@ public class RhythmGame extends JPanel implements Runnable {
 		setLayout(null);
 		this.myframe = mf;
 		this.game = this;
-		isrun = false;
-		finish = false;
-		yap = false;
-		isremoveAll = false;
-		backgroundImage = new ImageIcon(Main.class.getResource("images/game2back.png")).getImage();
-		rough1Image = new ImageIcon(Main.class.getResource("images/rought1.png")).getImage();
-		rough2Image = new ImageIcon(Main.class.getResource("images/rought2.png")).getImage();
-		rough1EnterImage = new ImageIcon(Main.class.getResource("images/rought1enter.png")).getImage();
-		rough2EnterImage = new ImageIcon(Main.class.getResource("images/rought2enter.png")).getImage();
+		calltime = 0;
+		backgroundImage = new ImageIcon(getClass().getResource("../images/game2back.png")).getImage();
+		rough1Image = new ImageIcon(getClass().getResource("../images/rought1.png")).getImage();
+		rough2Image = new ImageIcon(getClass().getResource("../images/rought2.png")).getImage();
+		rough1EnterImage = new ImageIcon(getClass().getResource("../images/rought1enter.png")).getImage();
+		rough2EnterImage = new ImageIcon(getClass().getResource("../images/rought2enter.png")).getImage();
 
 		letter = new RemoveBackground("Letter/push.png").getImage();
 		Lgood = new RemoveBackground("Letter/good.png").getImage();
@@ -103,31 +107,27 @@ public class RhythmGame extends JPanel implements Runnable {
 		Lperfect = new RemoveBackground("Letter/perfect.png").getImage();
 		Lpass = new RemoveBackground("Letter/passed.png").getImage();
 		Lfail = new RemoveBackground("Letter/failed.png").getImage();
-
+		t = new Timer[2];
 		life = new JLabel[this.gamelife];
-		temp = 0;
 		pushright = -1;
-		music = new Music("RGamebgm.mp3", true);
 
-		Index_L = 0;
-		Index_R = 0;
-		Index_T = 0;
-		Index_D = 0;
-		addlife();
 		repaint();
 		addKeyBind();
 		setTimer();
+
 	}
 
 	public void setTimer() {
-		t1 = new Timer(50, (e) -> {
+		t[0] = new Timer(50, (e) -> {
 			istimeout();
 			if (!lock && isrun)
 				removeobject();
+			//현재 시간에서 startime 뺀값. 
 			curtime = System.currentTimeMillis() - startime;
+			repaint();
 		});
-		makeNode = new Timer(10, (e) -> {
-			if (waitinglist.peek().when() <= music.getTime()) {
+		t[1] = new Timer(20, (e) -> {
+			if (waitinglist.peek().when() <= curtime) {
 				node = waitinglist.poll();
 				switch (node.getDirection()) {// 1 왼 2 오 3 위 4 아래.
 				case 1:
@@ -147,10 +147,10 @@ public class RhythmGame extends JPanel implements Runnable {
 				node.run();
 			}
 			if (waitinglist.peek() == null)
-				makeNode.stop();
+				t[1].stop();
 		});
-		terminate = new java.util.Timer(false);
-
+		
+		booking = new java.util.Timer(false);
 	}
 
 	public void addKeyBind() {
@@ -271,7 +271,7 @@ public class RhythmGame extends JPanel implements Runnable {
 		if (right)
 			g.drawImage(rough2EnterImage, 675, 325, null);
 
-		if (pushright != -1) {
+		if (pushright != -1 && isrun == true) {
 			if (pushright == 0) {
 				g.drawImage(Lbad, 750, 230, null);
 			} else if (pushright == 1) {
@@ -281,39 +281,64 @@ public class RhythmGame extends JPanel implements Runnable {
 			}
 		}
 		// 끝났으면 글자 띄우기
-		if (yap) {
+		if (yap && finish) {
 			if (Lpass != null)
 				g.drawImage(Lpass, 535, 210, null);
 			if (Lfail != null)
 				g.drawImage(Lfail, 535, 210, null);
 		}
+		g.setFont(new Font("Gulim", Font.BOLD, 50));
+		g.setColor(Color.black);
+		g.drawString("남은목숨 : "+ myframe.life(), 900, 70);
+		g.drawString("점수 : " + myframe.getpoint() , 20, 70);
+		time = Limtime - (int) curtime/1000 ;
+		if(time < 0)
+			g.drawString("남은시간 : "+ 20, 900, 650);
+		if(time>=0)
+		g.drawString("남은시간 : "+time, 900, 650);
+	}
+
+	public void init() {
+
+		gamelife = 6;
+		isrun = false;
+		finish = false;
+		yap = false;
+		isremoveAll = false;
+		up = false;
+		down = false;
+		left = false;
+		right = false;
+		time = 0 ;
+		repaint();
+		addlife();
+		requestFocus();
+		Index_L = 0;// 이거 위에 있어서 오류.
+		Index_R = 0;
+		Index_T = 0;
+		Index_D = 0;
+		calltime++;
 	}
 
 	@Override
 	public void run() { // 노드를 떨굽니다.
-		try {
-			gamelife = 6;
-			repaint();
-			Thread.sleep(1000);
-			startime = System.currentTimeMillis();
-			isrun = true;
+		init();
+		loadNode();
+		sleep(5);
+		repaint();
 
+		setTimer(() -> {
+			isrun = true;
 			repaint();
-			Thread.sleep(1000); // 스레드 간 충돌 방지 .
-			makeN();
-			makeNode.start();
-			t1.start();
-			music.start();
-		} catch (Exception e) {
-			e.printStackTrace();// : 에러의 발생근원지를 찾아서 단계별로 에러를 출력합니다.
-		}
+			startT();// 스레드 동작.
+		}, (long) 2000);
 	}
 
-	public void makeN() {
+	public void loadNode() {
 		try {
 			// 상대 경로 지정.
 			BufferedReader br = new BufferedReader(
-					new FileReader(Main.class.getResource("").getPath() + "/Track/track2.txt"));
+					new FileReader(getClass().getResource("../").getPath() + "/Track/track1.txt"));
 			StringTokenizer st;
 			String temp;
 			while ((temp = br.readLine()) != null) {
@@ -327,39 +352,49 @@ public class RhythmGame extends JPanel implements Runnable {
 		}
 	}
 
+	public void startT() {
+		music = new Music("RGamebgm.mp3", false);
+		startime = System.currentTimeMillis();
+		t[1].start();
+		t[0].start();
+		music.start();
+	}
+
 	public void loadN(String time, String dir, String ON) {
-		waitinglist.add(new Node(game, dir, Integer.parseInt(time), Integer.parseInt(ON)));
+		waitinglist.add(new Node(game, dir, Integer.parseInt(time), Integer.parseInt(ON), calltime));
 	}
 
 	public void close() {
 		finish = true;
 		repaint();
-		sleep(1000); // 스레드 슬립
 		stopT();
-		music.stop();
 		isrun = false;
 		lock = false; // 잠금 해제.
 		// 키바인딩 해제
 		allclear();
-		
 	}
+
 	public void allclear() {
-		
+
 		this.removeAll();
 		waitinglist.clear();
 		nodeList_L.clear();
 		nodeList_R.clear();
 		nodeList_T.clear();
 		nodeList_D.clear();
+		clearlife();
 		isremoveAll = true;
 	}
-public void removekeyBind() {
-	this.getInputMap().clear();
-	this.getActionMap().clear();
-}
+
+	public void removekeyBind() {
+		this.getInputMap().clear();
+		this.getActionMap().clear();
+	}
+
 	public void stopT() {
-		t1.stop();
-		makeNode.stop();
+		t[0].stop();
+		t[1].stop();
+		music.stop();
 	}
 
 	public void sleep(long i) {
@@ -419,23 +454,19 @@ public void removekeyBind() {
 			break;
 		}
 	}
-	public void removeobject() { // 오버로딩
-		try {
-			lock = true;
-			Node temp;
-			while (!removelist.isEmpty()) {
-				temp = removelist.poll();
 
-				if (temp != null) {
-					remove(temp);
-					repaint();
-				}
+	public void removeobject() { // 오버로딩
+		Node temp;
+		while (!removelist.isEmpty()) {
+			temp = removelist.poll();
+
+			if (temp != null) {
+				remove(temp);
+				repaint();
 			}
-			lock = false;
-			isremoveAll = true;
-		} catch (Exception e) {
-			e.printStackTrace();
 		}
+		isremoveAll = true;
+
 	}
 
 	public void loseL() {
@@ -447,54 +478,38 @@ public void removekeyBind() {
 		if (gamelife <= 0) {
 			remove(life[0]);
 		}
-		// System.out.println("=======================라 이 프 :" + this.gamelife);
 		checklife();
 	}
 
 	public void checklife() {
-		if (gamelife <= 0 && !finish) //짧은시간안에 여러번 반복 호출 막기위한 플래그.
+		if (gamelife <= 0 && !finish) // 짧은시간안에 여러번 반복 호출 막기위한 플래그.
 		{
+			finish = true;
 			yap = true;
 			Lpass = null;
-			finish = true;
 			repaint();
 			removeAll();
-			removekeyBind();
-			terminate.schedule(new java.util.TimerTask() { //1초뒤에 호출합니다. 
-				@Override
-				public void run() {
-					pushright = 5;
-					repaint();
-					sleep(500);
-					close();
-					while(!isremoveAll)
-					{
-						sleep(10);
-					}
-					myframe.gamefailed(); // 실패
-				}
-			}, 1000);
+//			removekeyBind();
+			setTimer(() -> {
+				pushright = 5;
+				repaint();
+				close();
+				myframe.gamefailed(); // 실패
+			}, 1500);
 		} else if (!isrun && gamelife > 0 && !finish) {// 게임 통과시.
-		
-			finish = true; 
+			finish = true;
 			yap = true;
 			Lfail = null;
 			repaint();
 			removeAll();
 			removekeyBind();
-			terminate.schedule(new java.util.TimerTask() {
-				@Override
-				public void run() {
-					pushright = 5;
-					repaint();
-					sleep(500);
-					close();
-					while(!isremoveAll)
-					{sleep(10);
-					}
-					myframe.gamepassed();
-				}
-			}, 1000);
+			setTimer(() -> {
+				pushright = 5;
+				repaint();
+				close();
+				myframe.gamepassed();
+			}, 1500); // 1초뒤에 종료 요청
+
 		}
 	}
 
@@ -527,11 +542,30 @@ public void removekeyBind() {
 		});
 	}
 
+	public void setTimer(Runnable runnable, long delay) {
+		booking.schedule(new java.util.TimerTask() {
+			@Override
+			public void run() {
+				runnable.run();
+			}
+		}, delay);
+	}
+
 	public void addlife() {
 		for (int i = 0; i < this.gamelife; i++) {
 			life[i] = new JL_Life();
 			life[i].setLocation(100 + i * 80, 600);
 			add(life[i]);
 		}
+	}
+
+	public void clearlife() {
+		for (int i = 0; i < this.gamelife; i++) {
+			this.remove(life[i]);
+		}
+	}
+
+	public int getCallTime() {
+		return calltime;
 	}
 }

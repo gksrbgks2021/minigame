@@ -57,7 +57,6 @@ public class MyFrame extends JFrame implements MouseListener {
 		setResizable(false); // 스크린 크기 고정.
 		setLocationRelativeTo(null); // 윈도우 창을 화면의 가운데에 띄우는 역할
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		// setBackground(new Color(0, 0, 0, 0));
 		setLayout(cardLayout);
 		setVisible(true);
 
@@ -86,7 +85,6 @@ public class MyFrame extends JFrame implements MouseListener {
 			// mainP = new MainP(gameFrame);
 //			getContentPane().removeAll();
 //			getContentPane().add(mainP); 
-			revalidate();
 			repaint();
 //			new Thread(mainP).start();
 		} else if (PN.equals("Shoot")) { // 1 번 쨰 게 임
@@ -161,7 +159,6 @@ public class MyFrame extends JFrame implements MouseListener {
 			over.setpoint(this.CurPoint); // 현재 점수 세팅.
 			changepanel("GameOver", CurLife);
 		}
-
 		else
 			nextgame();
 	}
@@ -171,22 +168,6 @@ public class MyFrame extends JFrame implements MouseListener {
 			thread1.interrupt();
 			System.out.println("중지");
 		}
-	}
-
-	public void keylistener() {
-		addKeyListener(new KeyAdapter() {
-			@Override
-			public void keyPressed(KeyEvent e) {
-				switch (e.getKeyCode()) {
-				case KeyEvent.VK_LEFT:
-					//
-					break;
-				case KeyEvent.VK_RIGHT:
-					//
-					break;
-				}
-			}
-		});
 	}
 
 	public int life() {

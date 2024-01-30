@@ -2,8 +2,10 @@
 
 <img src='https://github.com/gksrbgks2021/minigame/assets/39733405/44020d96-93ec-4ffc-ae8b-ee2ebf51216b'/>
 
-# 사용 SKill
+# 시연 영상
+[![Video Label](http://img.youtube.com/vi/RY4GhfCQOag/0.jpg)](https://youtu.be/RY4GhfCQOag)
 
+# 사용 SKill
 - java
 - Swing
 - jl1.0.jar (mp3 파일응 재생하기 위한 외부 라이브러리)
@@ -12,6 +14,7 @@
 - 사용자는 4가지 미니게임을 플레이할 수 있다.
 - 멀티 스레드 를 사용하여, 객체간 충돌 탐지 와 키보드 입력 이벤트 처리를 받아 게임을 진행한다.
 - 표적 맞추기 게임, 점프 게임 , 장애물 피하기 , 리듬 게임으로 구성되어 있다.
+- LinkedBlockingQueue 를 사용하여, 객체가 생성되고, 삭제될때 Blocking하여 Thread-Safety한 자료구조를 사용하였다. 
 
 ![image](https://github.com/gksrbgks2021/minigame/assets/39733405/f3e592af-e9d9-402b-9809-ba52601a0f2e)
 
@@ -82,5 +85,4 @@ public void CheckCrash() {// 충돌을 체크합니다.
 - 프로젝트를 만들면서 클래스를 하나 만들고, 타이머를 추가할때마다 충돌, 메소드 중복호출이 일어나 디버깅 하는데 시간을 많이 썼다. 
 - 운영체제 이론에서 배웠던 스레드 간 동기화 문제 , 자바 이벤트 스택 처리 문제를 직접 겪고 해결하는 과정이 흥미로웠다.
 - 입력 이벤트와 화면 렌더링을 하나의 스레드에서 동작하는 reactive 엔진 방식으로 구현하지 않아, 성능 저하가 발생하였다. 이를 해결하려면 코드 전체를 리팩토링 해야하기 때문에 유지보수 비용이 너무 커서 문제점을 파악 하는 것으로 끝냈다.
-
 
